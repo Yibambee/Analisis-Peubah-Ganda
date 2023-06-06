@@ -1,0 +1,217 @@
+---
+title: "Tugas Individu APG (Linear Discriminant Analysis)"
+author: "Niko Romano"
+output: rmdformats::downcute
+--- 
+
+# Package 
+
+```{r}
+library(readxl)
+library(MASS)
+library(ggplot2)
+library(biotools)
+library(MVN)
+```
+
+# Pendahuluan 
+
+Data mengenai Bone Mineral Density (Kepadatan Mineral Tulang) dari 169 orang. Data yang dikumpulkan berupa umur, jenis kelamin, pengalaman patah tulang, berat, tinggi, serta pengobatan
+
+# Baca Data
+
+```{r}
+data <- read.csv("D:/Users/ASUS/Documents/Materi Semester 5/Analisis Peubah Ganda (APG)/Data/bmd.csv", header = TRUE)
+data <- data[,c(2,4,5,6,7,9)]
+```
+
+# Tujuan 
+
+Ingin dilakukan pemodelan LDA dari kedua grup fracture berdasarkan variabel bmd, umur, berat badan, dan tinggi badan
+
+# Struktur Data
+
+```{r}
+str(data)
+```
+
+# Standardisasi Data
+
+```{r}
+f <- data[data$fracture == "fracture",] 
+nf <- data[data$fracture == "no fracture",]
+nrow(f)
+nrow(nf)
+
+# standarisasi
+# fracture <- scale(fracture)
+# no_fracture <- scale(no_fracture)
+
+```
+
+# Buat Data Training dan Testing
+
+```{r}
+set.seed(18)
+
+# gunakan 80% dataset sebagai training dan sisanya testing 
+sample <- sample(c(TRUE, FALSE), size = nrow(data), replace = TRUE, prob = c(0.8, 0.2))
+train <- data[sample,]
+test <- data[!sample,]
+
+```
+
+# Asumsi LDA
+
+## Uji Homogenitas Matriks Varians-Covarians 
+
+**Hipotesis:**
+
+- H0 : Matriks Covarians kedua kelompok sama 
+- H1 : Matriks Covarians kedua kelompok berbeda
+
+```{r}
+boxM(data = train[,c(-2,-5)], grouping = train[,2])
+```
+Diperoleh p-value = 0.2482 > alpha (gagal tolak H0) sehingga dapat disimpulkan bahwa dengan tingkat signifikansi 5%, menunjukkan bahwa matriks covarians kedua kelompok sama. 
+
+## Uji Normalitas
+
+**Hipotesis:**
+
+- H0 : Data berdistribusi normal 
+- H1 : Data tidak berdistribusi normal
+
+```{r}
+mvn(data = train[,c(-2,-5)])
+```
+Dari uji anderson darling, diperoleh bahwa keempat variabel yaitu umur, berat badan, tinggi badan, dan bmd memiliki distribusi normal univariate. Namun dalam uji Henze-Zirkler, data tidak berdistribusi normal dalam multivarate. Dengan demikian, variabel tidak memenuhi asumsi normalitas, tetapi kita asumsikan memenuhi asumsi agar dapat dilakukan pemodelan. 
+
+# Pemodelan LDA (2 Groups)
+
+```{r}
+fit <- lda(fracture ~ age + weight_kg + height_cm + bmd, data = train)
+fit
+```
+**Prior probabilities of group:** These represent the proportions of each Species in the training set. For example, 35.8% of all observations in the training set were of species virginica.
+
+**Group means:** These display the mean values for each predictor variable for each species.
+
+**Coefficients of linear discriminants:** These display the linear combination of predictor variables that are used to form the decision rule of the LDA model. For example:
+
+# Predict
+
+## Posterior Probability
+
+```{r}
+#use LDA model to make predictions on test data
+fit.value <- predict(fit, test)
+```
+
+
+```{r}
+fit.value$posterior
+```
+## Discriminant Function
+
+```{r}
+fit.value$x
+```
+## Accuracy Model
+
+```{r}
+mean(fit.value$class==test$fracture)  
+```
+
+Model dapat memprediksi kelompok sebesar 92% dari seluruh observasi dalam dataset testing
+
+## Plot Accuracy untuk 10 kali Iterasi 
+
+```{r}
+accuracy1 <- c(
+  0.6153846,
+  0.825,
+  0.9090909,
+  0.9047619,
+  0.9,
+  0.7631579,
+  0.7575758,
+  0.8888889,
+  0.7380952,
+  0.92
+)
+
+no <- seq(10)
+
+plot(x = no, y = accuracy1, 
+     type = "l", 
+     lty = 1,
+     main = "Plot Accuracy Model LDA 2 Groups",
+     xlab = "",
+     ylab = "Accuracy"
+     )
+
+``` 
+
+
+
+# Pemodelan LDA (3 Groups)
+
+```{r}
+fit2 <- lda(medication ~ age + weight_kg + height_cm + bmd, data = train)
+fit2
+```
+
+# Predict
+
+```{r}
+#use LDA model to make predictions on test data
+fit2.value <- predict(fit2, test)
+```
+
+## Posterior Probability
+
+```{r}
+fit2.value$posterior
+```
+
+## Discriminant Function
+
+```{r}
+fit2.value$x 
+```
+
+## Accuracy Model 
+
+```{r}
+mean(fit2.value$class==test$medication)   
+```
+
+Model dapat memprediksi kelompok sebesar 76% dari seluruh observasi dalam dataset testing
+
+## Plot Accuracy untuk 10 kali iterasi 
+
+```{r}
+accuracy2 <- c(
+  0.8846154,
+  0.775,
+  0.7878788,
+  0.7857143,
+  0.825,
+  0.8421053,
+  0.7575758,
+  0.7777778,
+  0.8095238,
+  0.76
+)
+
+plot(x = no, y = accuracy2, 
+     type = "l", 
+     lty = 1,
+     main = "Plot Accuracy Model LDA 3 Groups",
+     xlab = "",
+     ylab = "Accuracy"
+     ) 
+```
+
+
