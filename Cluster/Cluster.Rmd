@@ -1,0 +1,238 @@
+---
+title: "Tugas Individu APG (Clustering)"
+author: "Niko Romano"
+output: rmdformats::downcute
+--- 
+
+# Package 
+
+```{r}
+# load packages
+library(factoextra)
+library(cluster)
+library(DT)
+library(dplyr)
+library(fmsb)
+```
+
+# Pendahuluan 
+
+Analisis Klaster merupakan salah satu metode statistik yang bertujuan untuk memisahkan objek ke dalam beberapa klaster (kelompok data) yang mempunyai sifat :
+
+- Objek memiliki karakteristik yang serupa dalam satu klaster
+- Objek memiliki karakteristik berbeda antar klaster
+
+Secara umum, analisis klaster dibagi menjadi dua yaitu **1] Hierarchical Clustering** dan **2] Non Hierarchical Clustering**. Perbedaan diantara kedua metode tersebut adalah pada **1] Hierarchical Clustering**, jumlah klaster ditentukan kemudian dan pengelompokkan objek ke dalam klaster dilakukan secara bertahap; sedangkan pada **2] Non Hierarchical Clustering**, jumlah klaster ditentukan di awal dan pengelompokkan objek ke dalam klaster dilakukan sekaligus.
+
+Salah satu metode **Non Hierarchical Clustering** yang sering digunakan adalah **K-Means Clustering**. **K-Means Clustering** merupakan metode analisis klaster dimana pengguna menentukan jumlah klaster sebanyak ‘k’ yang ingin dibuatnya. Pengklasteran suatu objek didasarkan pada jarak terdekat antara objek tersebut dengan centroid/titik pusat/rata-rata suatu klaster. 
+
+# Baca Data 
+
+Data ini berisi statistik, dalam penangkapan per 100.000 penduduk atas penyerangan, pembunuhan, dan pemerkosaan di masing-masing dari 50 negara bagian AS pada tahun 1973. Juga diberikan persentase penduduk yang tinggal di daerah perkotaan.
+
+```{r}
+# load the dataset
+data("USArrests")
+
+```
+
+# Standardisasi Data 
+
+```{r}
+# standardisasi data
+data <- scale(USArrests)
+datatable(data, caption = "USArrests") 
+head(data) 
+```
+
+# Assessing the clusterability 
+
+Before applying cluster methods, the first step is to assess whether the data is clusterable, a process defined as the assessing of clustering tendency. get_clust_tendency() assesses clustering tendency using **Hopkins' statistic** and a visual approach.
+
+```{r}
+res <- get_clust_tendency(data = data, n = 40, graph = TRUE)
+
+res$hopkins_stat #hopskin statistic
+```
+
+The value of the Hopkins statistic is significantly > 0.5, indicating that the data is highly clusterable. Additionally, It can be seen that the ordered dissimilarity image contains patterns (i.e., clusters).
+
+
+```{r}
+# Visualize the dissimilarity matrix
+res$plot
+```
+Dimana heatmap diatas:
+
+Merah: tingkat kesamaan/kecocokan tinggi
+Biru: tingkat kesamaan/kecocokan rendah
+
+# Estimate the number of clusters in the data
+
+As k-means clustering requires to specify the number of clusters to generate, we’ll use the function clusGap() [cluster package] to compute gap statistics for estimating the optimal number of clusters . The function fviz_gap_stat() [factoextra] is used to visualize the gap statistic plot.
+
+```{r}
+# Compute the gap statistic
+gap_stat <- clusGap(data, FUN = kmeans, nstart = 25, K.max = 10, B = 100) 
+gap_stat
+
+# Plot the result
+fviz_gap_stat(gap_stat)
+```
+
+The gap statistic suggests a **3 cluster** solutions.
+
+```{r}
+# elbow plot
+set.seed(1)
+fviz_nbclust(data, hcut, method = "wss") + 
+  geom_vline(xintercept = 4, linetype = 2)
+```
+The elbow plot suggests a **4 cluster** solutions.
+
+# Compute k-means clustering
+
+```{r}
+# Compute k-means
+km.res <- kmeans(data, centers = 3, nstart = 25) # kluster dengan k = 3
+head(km.res$cluster, 20)
+
+```
+```{r}
+km.res
+```
+
+## Cluster Plot 
+
+```{r}
+# Visualize clusters using factoextra
+fviz_cluster(km.res, USArrests)
+
+```
+
+# Hierachical clustering using eclust() 
+
+```{r}
+# Enhanced hierarchical clustering
+res.hc <- eclust(data, "hclust") # compute hclust
+```
+## Dendogram
+
+```{r}
+# plot dendogram
+fviz_dend(res.hc, rect = TRUE) # dendrogam 
+```
+
+# Cluster Validation Index 
+
+## Gap Stat
+
+```{r}
+# Compute k-means 
+res.km <- eclust(data, FUNcluster = "kmeans", nstart = 25)
+```
+
+```{r}
+# Gap statistic plot
+fviz_gap_stat(res.km$gap_stat)
+```
+The large value of gap statistic means that the clustering structure is far away 
+from the random uniform distribution of points. Hence, the higher the value, the better the classification.
+
+## Silhouette 
+
+```{r}
+# Silhouette plot
+fviz_silhouette(res.km) 
+```
+
+Recall that the silhouette measures (Si) how similar an object i is to the the other objects in its own cluster versus those in the neighbor cluster. Si values range from 1 to - 1:
+
+- A value of Si close to 1 indicates that the object is well clustered. In the other words, the object i is similar to the other objects in its group.
+- A value of Si close to -1 indicates that the object is poorly clustered, and that assignment to some other cluster would probably improve the overall results
+
+# Pemberian Nama / Pelabelan Cluster
+
+```{r}
+df <- USArrests %>% 
+  mutate(Cluster = km.res$cluster) %>% 
+  group_by(Cluster) %>% 
+  summarise_all("mean") 
+df
+```
+
+## Spider Chart
+
+```{r}
+# tambahkan max min tiap variabel 
+data.radar <- df[,2:5]
+# rowname <- c("Max", "Min", "Cluster 1", "Cluster 2", "Cluster 3")
+max <- c(13, 256, 73, 30) 
+min <- c(3, 78, 52, 12 )
+data.radar <- rbind(max, min, data.radar)
+```
+
+
+```{r}
+par(mfrow = c(1,3))
+
+radarchart(df = data.radar[c(1:3),],
+           axistype = 4,
+           pcol = "red",
+           plwd = 2, 
+           cglcol = "#506396",
+           cglty = 1,
+           )
+
+radarchart(df = data.radar[c(1,2,4),],
+           axistype = 4,
+           pcol = "green",
+           plwd = 2, 
+           cglcol = "#506396",
+           cglty = 1
+           )
+
+radarchart(df = data.radar[c(1,2,5),],
+           axistype = 4,
+           pcol = "blue",
+           plwd = 2, 
+           cglcol = "#506396",
+           cglty = 1
+           )
+
+# par(mfrow = c(1,2))
+
+# Add an horizontal legend
+legend(
+  x = "bottom", legend = c("Cluster 1","Cluster 2","Cluster 3"),
+  bty = "n", pch = 20 , col = c("red", "green", "blue"),
+  text.col = "black", cex = 1, pt.cex = 1.5
+  )
+
+
+
+```
+
+## Biplot
+
+```{r}
+library(MultBiplotR)
+pca <- PCA.Biplot(data)
+
+bip <- AddCluster2Biplot(pca, ClusterType="us", Groups = as.factor(res.hc$cluster))
+plot(bip, mode="a", margin=0.1, PlotClus=TRUE, CexInd = 0.6)
+```
+
+
+Dapat dilihat pada output di atas bahwa :
+
+- cluster 1 merupakan cluster dimana state memiliki kasus pembunuhan, penyerangan, dan pemerkosaan terbesar / tertinggi 
+- cluster 2 merupakan cluster dimana state memiliki kasus pembunuhan, penyerangan, dan pemerkosaan terkecil / terendah
+- cluster 3 merupakan cluster dimana state memiliki kasus pembunuhan, penyerangan, dan pemerkosaan menengah
+
+
+
+
+
+
+

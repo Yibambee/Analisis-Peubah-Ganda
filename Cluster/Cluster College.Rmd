@@ -1,0 +1,269 @@
+---
+title: "Tugas Akhir APG (Clustering)"
+author: "Niko Romano"
+output: rmdformats::downcute
+--- 
+
+# Package 
+
+```{r}
+# load packages
+library(factoextra)
+library(cluster)
+library(DT)
+library(dplyr)
+library(fmsb)
+```
+
+# Pendahuluan 
+
+Data berisi sejumlah besar Perguruan Tinggi AS dari US News and World Report edisi 1995. 
+
+Data yang digunakan terdiri dari 777 observasi dengan 18 variables, satu variable termasuk ke dalam kategorik dimana variable tersebut tidak kita gunakan. Variable-variable tersebut diantaranya yaitu:
+
+
+
+1. Fasilitas akademik College 
+
+- Apps       : Jumlah aplikasi yang diterima
+- Accept     : Jumlah aplikasi 
+
+2. Biaya College
+
+- Books      : Estimasi biaya buku
+- Personal   : Estimasi pengeluaran pribadi
+- Outstate   : Biaya kuliah
+
+3. Partisipasi
+
+- Enroll     : Jumlah siswa baru yang terdaftar 
+- PhD        : Persentase fakultas dengan gelar Ph.D
+- perc.alumni: Persentase alumni yang menyumbang
+- Grad.Rate  : Tingkat Kelulusan
+
+# Baca Data 
+
+```{r}
+data <- read.csv("D:/Users/ASUS/Documents/Materi Semester 5/Analisis Peubah Ganda (APG)/Data/College.csv")
+
+data <- data[,c(1,3,4,5,10,12,13,14,17,19)]
+
+str(data) # melihat struktur data 
+```
+
+# Cek Missing Value 
+
+```{r}
+# cek missing value
+which(is.na(data))
+
+```
+
+# Standardisasi Data 
+
+```{r}
+# mengganti index dengan data frame column
+row.names(data) <- data$X
+data <- data[,-1]
+```
+
+
+```{r}
+# standardisasi data
+data <- scale(data[,1:9])
+head(data) 
+```
+
+# Assessing the clusterability 
+
+Sebelum menerapkan metode cluster, langkah pertama yang dapat dilakukan adalah menilai apakah data tersebut clusterable (dapat diklasterisasi), sebuah proses yang didefinisikan sebagai penilaian kecenderungan clustering. get_clust_tendency() menilai kecenderungan pengelompokan menggunakan **statistik Hopkins** dan pendekatan visual.
+
+```{r}
+res <- get_clust_tendency(data = data, n = nrow(data)-1, graph = TRUE)
+
+res$hopkins_stat #hopskin statistic
+```
+
+Diperoleh nilai hopskin statistic yaitu H = 0.883 dimana > 0.5 yang mengindikasikan bahwa data dapat dilakukan clustering (highly clusterable)
+
+
+# Estimasi jumlah cluster dalam data 
+
+```{r}
+# Compute the gap statistic
+gap_stat <- clusGap(data, FUN = kmeans, K.max = 6) 
+gap_stat
+
+# Plot the result
+fviz_gap_stat(gap_stat)
+```
+
+Diperoleh bahwa gap statistics menyarakankan **1 Cluster** dimana 1 cluster sama saja seperti tidak melakukan clustering
+
+```{r}
+# elbow plot
+set.seed(1)
+fviz_nbclust(data, hcut, method = "wss") + 
+  geom_vline(xintercept = 3, linetype = 2)
+```
+Diperoleh bahwa Elbow Plot menyarankan **3 Cluster**
+
+
+# Compute k-means clustering
+
+```{r}
+# Compute k-means
+km.res <- kmeans(data, centers = 3) # kluster dengan k = 3
+head(km.res$cluster, 15)
+
+```
+
+
+```{r}
+km.res[-km.res$cluster]
+km.res$centers
+```
+
+## Cluster Plot 
+
+```{r}
+# Visualize clusters using factoextra
+fviz_cluster(km.res, data = data, geom = "point")
+
+```
+
+# Hierachical clustering & Dendogram
+
+```{r}
+# Enhanced hierarchical clustering
+res.hc <- eclust(data, "hclust", k = 3) # compute hclust 
+
+# plot dendogram
+fviz_dend(res.hc, rect = TRUE) # dendrogam 
+```
+
+
+# Cluster Validation Index 
+
+```{r}
+# Compute k-means 
+res.km <- eclust(data, FUNcluster = "kmeans", k.max = 3, graph = FALSE, k = 3)
+```
+
+
+## Silhouette 
+
+```{r}
+# Silhouette plot
+fviz_silhouette(res.km) 
+```
+
+
+# Pemberian Nama / Pelabelan Cluster
+
+```{r}
+data <- cbind(cluster = km.res$cluster, data)
+```
+
+
+```{r}
+df <- as.data.frame(data) %>% 
+  group_by(cluster) %>% 
+  summarise_all("mean") 
+df
+```
+
+```{r}
+fasilitas <- cbind(df$Apps, df$Accept)
+biaya <- cbind(df$Books, df$Personal, df$Outstate)
+partisipasi <- cbind(df$Enroll, df$PhD, df$perc.alumni, df$Grad.Rate)
+
+df.cluster <- cbind(
+  cluster = df$cluster,
+  fasilitas = rowMeans(fasilitas),
+  biaya = rowMeans(biaya),
+  partisipasi = rowMeans(partisipasi),
+  jumlah_college = km.res$size
+)
+
+df.cluster <- as.data.frame(df.cluster)
+df.cluster
+
+
+```
+
+```{r}
+radarchart(c(-3,3,df.cluster[1,2:4]))
+
+```
+
+
+Diperoleh bahwa college dapat dikelompokkan menjadi 
+
+1. cluster 1 yaitu dengan: fasilitas, biaya, dan partisipasi tertinggi
+
+Contoh : 
+- Appalachian State University
+- Baylor University
+- Boston University
+
+2. cluster 2 yaitu dengan: fasilitas, biaya, dan partisipasi menengah 
+
+Contoh : 
+- Albertus Magnus College
+- Albion College
+- Albright College
+
+3. cluster 3 yaitu dengan: fasilitas, biaya, dan partisipasi terendah
+
+Contoh : 
+- Abilene Christian University
+- Adelphi University
+- Adrian College
+
+# Radar Chart
+
+```{r}
+# Library
+library(fmsb)
+
+# Create data: note in High school for several students
+set.seed(99)
+# data <- as.data.frame(matrix( sample( 0:20 , 15 , replace=F) , ncol=5))
+
+fasilitas <- c(2.2365490, -0.1787912, -0.3081955)
+biaya <- c(0.2327535, 0.1118230, -0.1286757)
+partisipasi <- c(0.6445080, 0.4525713, -0.4621691	)
+
+		
+			
+		
+
+data <- as.data.frame(cbind(fasilitas, biaya, partisipasi))
+colnames(data) <- c("Fasilitas" , "Biaya" , "Partisipasi")
+rownames(data) <- paste("cluster" , 1:3 , sep="-")
+
+# To use the fmsb package, I have to add 2 lines to the dataframe: the max and min of each variable to show on the plot!
+data <- rbind(rep(3,3) , rep(-3,3) , data)
+
+# Color vector
+colors_border=c( rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9) , rgb(0.7,0.5,0.1,0.9) )
+colors_in=c( rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4) , rgb(0.7,0.5,0.1,0.4) )
+
+# plot with default options:
+radarchart( data  , axistype=1 , 
+            #custom polygon
+            pcol=colors_border , pfcol=colors_in , plwd=4 , plty=1,
+            #custom the grid
+            cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,20,5), cglwd=0.8,
+            #custom labels
+            vlcex=0.8 
+)
+
+# Add a legend
+legend(x=0.7, y=1, legend = rownames(data[-c(1,2),]), bty = "n", pch=20 , col=colors_in , text.col = "grey", cex=1.2, pt.cex=3)
+
+
+```
+
+

@@ -1,0 +1,172 @@
+---
+title: "Tugas Akhir APG (Clustering)"
+author: "Niko Romano"
+output: rmdformats::downcute
+--- 
+
+# Package 
+
+```{r}
+# load packages
+library(factoextra)
+library(cluster)
+library(DT)
+library(dplyr)
+library(fmsb)
+```
+
+# Pendahuluan 
+
+Data berisi sejumlah besar Perguruan Tinggi AS dari US News and World Report edisi 1995. 
+
+Data terdiri dari 777 observasi dengan 18 variables, satu variable termasuk ke dalam kategorik dimana variable tersebut tidak kita gunakan. Variable-variable tersebut diantaranya yaitu:
+
+- Private    : Mengindikasikan universitas swasta/negeri (private = swasta)
+- Apps       : Jumlah aplikasi yang diterima
+- Accept     : Jumlah aplikasi 
+- Enroll     : Jumlah siswa baru yang terdaftar 
+- Top10perc  : Persentase siswa baru dari 10% teratas H.S. kelas
+- Top25perc  : Persentase siswa baru dari 25% teratas H.S. kelas
+- F.Undergrad: Jumlah sarjana fulltime
+- P.Undergrad: Jumlah sarjana parttime
+- Outstate   : Biaya kuliah
+- Room.Board : Biaya kamar dan makan
+- Books      : Estimasi biaya buku
+- Personal   : Estimasi pengeluaran pribadi
+- PhD        : Persentase fakultas dengan gelar Ph.D
+- Terminal   : Persentase fakultas dengan gelar terminal 
+- S.F.Ratio  : Rasio mahasiswa/fakultas 
+- perc.alumni: Persentase alumni yang menyumbang
+- Expend     : Pengeluaran instruksional per siswa 
+- Grad.Rate  : Tingkat Kelulusan
+
+
+# Baca Data 
+
+```{r}
+data <- read.csv("D:/Users/ASUS/Documents/Materi Semester 5/Analisis Peubah Ganda (APG)/Data/College.csv")
+str(data) # melihat struktur data
+```
+
+# Cek Missing Value 
+
+```{r}
+# cek missing value
+which(is.na(data))
+
+```
+
+# Standardisasi Data 
+
+```{r}
+# mengganti index dengan data frame column
+row.names(data) <- data$X
+```
+
+
+```{r}
+# standardisasi data
+data <- scale(data[,3:19])
+head(data) 
+```
+
+# Assessing the clusterability 
+
+Sebelum menerapkan metode cluster, langkah pertama yang dapat dilakukan adalah menilai apakah data tersebut clusterable (dapat diklasterisasi), sebuah proses yang didefinisikan sebagai penilaian kecenderungan clustering. get_clust_tendency() menilai kecenderungan pengelompokan menggunakan **statistik Hopkins** dan pendekatan visual.
+
+```{r}
+res <- get_clust_tendency(data = data, n = nrow(data)-1, graph = TRUE)
+
+res$hopkins_stat #hopskin statistic
+```
+
+Diperoleh nilai hopskin statistic yaitu H = 0.864 dimana > 0.5 yang mengindikasikan bahwa data dapat dilakukan clustering (highly clusterable)
+
+
+# Estimasi jumlah cluster dalam data 
+
+```{r}
+# Compute the gap statistic
+gap_stat <- clusGap(data, FUN = kmeans, K.max = 6) 
+gap_stat
+
+# Plot the result
+fviz_gap_stat(gap_stat)
+```
+Diperoleh bahwa gap statistics menyarakankan **5 Cluster**
+
+```{r}
+# elbow plot
+set.seed(1)
+fviz_nbclust(data, hcut, method = "wss") + 
+  geom_vline(xintercept = 3, linetype = 2)
+```
+Diperoleh bahwa Elbow Plot menyarankan **3 Cluster**
+
+```{r}
+
+```
+
+# Compute k-means clustering
+
+```{r}
+# Compute k-means
+km.res <- kmeans(data, centers = 3) # kluster dengan k = 3
+head(km.res$cluster, 15)
+
+```
+
+
+```{r}
+km.res[-km.res$cluster]
+km.res$centers
+```
+
+## Cluster Plot 
+
+```{r}
+# Visualize clusters using factoextra
+fviz_cluster(km.res, data = data, geom = "point")
+
+```
+
+# Hierachical clustering & Dendogram
+
+```{r}
+# Enhanced hierarchical clustering
+res.hc <- eclust(data, "hclust") # compute hclust 
+
+# plot dendogram
+fviz_dend(res.hc, rect = TRUE) # dendrogam 
+```
+
+
+# Cluster Validation Index 
+
+```{r}
+# Compute k-means 
+res.km <- eclust(data, FUNcluster = "kmeans", k.max = 3, graph = FALSE)
+```
+
+
+## Silhouette 
+
+```{r}
+# Silhouette plot
+fviz_silhouette(res.km) 
+```
+
+
+# Pemberian Nama / Pelabelan Cluster
+
+```{r}
+data <- cbind(cluster = km.res$cluster, data)
+```
+
+
+```{r}
+df <- as.data.frame(data) %>% 
+  group_by(cluster) %>% 
+  summarise_all("mean") 
+df
+```
