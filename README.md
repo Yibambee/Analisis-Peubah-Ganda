@@ -1,5 +1,7 @@
 # Analisis-Peubah-Ganda
 
+Mata Kuliah Analisis Peubah Ganda 
+
 Data bisa diakses [disini](/Data)
 
 Materi:
