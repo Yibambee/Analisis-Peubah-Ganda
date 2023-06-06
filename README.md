@@ -3,6 +3,6 @@
 Data bisa diakses [disini](/Data)
 
 Materi:
-- Principle Component Analysis (PCA)
-- Latent Dirichlet Analysis (LDA)
-- Clustering
+- [Principle Component Analysis (PCA)](/PCA) 
+- [Latent Dirichlet Analysis (LDA)](/LDA)
+- [Clustering](/Cluster)
