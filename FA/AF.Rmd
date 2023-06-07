@@ -1,0 +1,361 @@
+---
+title: "Modul 9"
+author: "Dhea Prawidia"
+date: '2022-11-01'
+output: word_document
+---
+
+
+======================================================================
+Tujuannya: Memperoleh sejumlah kecil faktor melalui penyusutan (reduction) dalam data peubah ganda (pengembanga PCA khusunya dalam pencirian/ pemberian nama faktor)
+======================================================================
+Pendekatan AF
+1. Konfirmasi (Confirmatory Factor Analysis/ CFA) faktor yang telah dinyatakan dalam teori, dan digunakan untuk memvalidasi faktor
+
+2. Eksplorasi (Exsplorasy Factor Analysis/ EFA)
+terbentunya faktor tanpa/belum adanya teori, tetapi berdasarkan adanya keterkaitan dalam data tersebut
+======================================================================
+Model Faktor Ortogonal buku jhonson 9.2 dan 9.3
+$$
+X -\mu = LF + \epsilon\\
+$$
+Dimana setiap amatan yang menyimpang terhadap amatannya itu menyiratkan deviasi, nantinya deviasi- deviasi itu yang akan menyiratkan keragaman
+
+ingat ukuran matriknya yaa
+$$
+X \ ukuran \ px1\\
+\mu \  ukuran \ px1\\
+L \ ukuran \ pxm\\
+F \ ukuran \  mx1 \\
+\epsilon \ ukuran \ px1\\
+$$
+
+$$
+Dimana:\\
+F = faktor \ umum \ (common factors)\\
+\epsilon = error/ \ faktor spesifik \ (spesifik \ factors)\\
+L : pembobot \ (loadings) \\
+
+asumsi:\\
+E(F)= 0, \ Cov (F)= I\\
+E(\epsilon ) = 0, \ Cov (\epsilon) = \Psi\\
+cov (\epsilon,F)=0\ karena \ independen 
+$$
+
+======================================================================
+Penguraian keragaman data
+$$
+1.\\
+Matriks\ sigma = LL' + \Psi\\
+\sigma_ii = h_i^2 + \psi_i = \ communality + var.spesifik\\
+Cov(X_i,X_k) = jumlah (l_ij, l_kj)\\
+
+2\\
+Cov (X,F)= L\\
+Cov (X_i, F,j) = l_ij
+$$
+Kegunaan comuinality : bisa menjelaskan proporsi keragaman di X, dimana semakin besar proporsinya berarti dapat kita nyatakan semakin bisa faktor utama menjelaskan variasi di dalam X tersebut 
+
+==========================================================
+Ingatt yaaa
+Nilai Loading dapat menghitung 
+1. Comunallity (yang bergerak nilai-j nya (kolomnya) mulai dari 1 sampai ke m)
+
+2. Akar Ciri (yang bergerak nilai-i nya (barisnya) mulai dari 1 sampai ke p) 
+
+dikuadratkan dan dijumlahkan loadingnya yaa 
+
+======================================================================
+Metode Estimasi Loading 
+1. Principal Componen (Factor) lihat 9.15 (banyak orang yang suka karena kerja sama dengan komponen utama, ini tidak perlu asumsi tentang X yang akan kita reduksi yang penting dapat terukur secara kuantitatif dan bukan 0-1, tetapi bisa skoring, dengan memamfaatkan spectral dekomposisi, dimana spectral dekomposisi itu menguraikan akar ciri dengan vektor-vektornya, di persamaan 9.10, nanti dari perkalian lambda menjadi perkalian akar lambda dan hasil akhirnya )
+$$
+sigma = L_(pxp)\ L_(pxp)+ 0_P = L_pL_p'
+$$
+Tujuan reduksi maka 
+$$
+Sigma = L_(pxm)L_(mxp)' + \Psi_p\\
+lihat \ estimasi \ L_(pxm)\ pada \ (9.15)\ dan \ bahwa \ estimasi\\
+\lambda_i = jumlah(l_(ij)^2\\
+lihat \ estimasi \ \Psi_p \ pada (9.16)
+$$
+
+
+2. Maximum Likelihood
+intinya memahami likelihood, karena tdk dapat sebarangan karena dapat dilakukan pada fungsi peluang eksponensial family , jadi x yang di pakai harus di cek apakah distribusi peluang eksponensial family atau bukan, dan kalau bukan ngk bisa di gunakan dan yang masuk salah satunya distribusi normal dan multivariate normal adalah distribusi normal, di cek dulu distribusi normal. 
+
+kalau berdistribusi normal silahkan pilih aja yaa 
+kalau tidak berdistribusi normal jangan mle ya
+
+=========================================================
+
+Inti Kelebihan dari AF dibandingakan AKU adalah 
+setiap faktor dapat dicirikan oleh peubah asal sedemikian rupa sehingga bersifat mutualy exclusive dengan melakukan rotasi (jadi misal X1 sdh dicirikan di faktor 1 maka X1 tdk lagi mencirikan di faktor 2 dan lainnya)
+======================================================================
+ROTASI AF
+=========================================================
+1. ORTOGONAL (A.l varimax)
+memutar sumbu faktor dalam sumbu yang tegak lurus, sehinggaa nilai loading (L) menjadi loading yang baru (L*) yang dapat lebih mencirikan faktor dengan sifat mutually exclusive 
+L* =LT; T = matriks ortogonal
+
+2. Non ortogonal (al.obliq)
+memutar sumbu faktor yang tidak tegak lurus, tapi mampu mencirikan faktor dengan baik
+
+=========================================================
+
+Ingaaatt tahapannya yaa
+=========================================================
+1. Merupakan pengembangan aku
+2. Basis AF adalah matriks ragam peragam atau matrik korelasi
+3. penetapan jumlah faktor dari AKU 
+4. Antar Faktor saling bebas
+5. setiap faktor dapat dicirikan oleh peubah asal sedemoikian rupa sehingga bersifat mutually exclusif dengan melakukan rotasi (keunggulan AF dibandingkan AKU)
+6. juka diperlukan maka faktor dapat dihitung nilainya, disebut skor faktor
+=========================================================
+# Contoh 1
+
+Gunakan dataset investmen dari package”sandwich” untuk melakukan 
+analisis faktor. Dataset investment terdiri dari tujuh kolom. Kolom yang kita 
+gunakan untuk analisis faktor ini terdiri dari 6 kolom atau 6 variabel yaitu:
+
+X1 = GNP, X2=Investment, X3=Price, X4=Interest, X5=RealGNP, X6=RealInv
+
+## Import data
+
+```{r}
+data(Investment, package="sandwich")
+data <- as.data.frame(Investment[,1:6])
+datastan = scale(data)
+datastan
+```
+
+## Histogram
+
+Cek Histogram dan kurva setiap variabel
+
+```{r}
+for(i in 1:ncol(datastan)) {
+  hist(datastan[,i], probability = TRUE, main = colnames(data)[i], xlab = colnames(data)[i])
+  lines(density(datastan[,i]))
+}
+```
+
+## Uji MVN
+•	Jika menggunakan PCA sebagai dasar penentuan faktor,maka asumsi normalitas diperlukan
+Uji normalitas menggunakan uji mardia (multivariat normal)
+
+$$
+
+H_0 : Data \space Berdistribusi \space Normal \space Multivariat\\
+H_1 : Data\space Tidak \space Berdistribusi \space Normal\space Multivariat
+
+$$
+
+
+```{r}
+library(MVN)
+mvn(datastan, mvnTest = "mardia")
+# mvn(data)
+```
+
+## Uji Sphericity Bartlett 
+
+catatan:
+Uji Bartlett dilakukan untuk mengetahui apakah terdapat korelasi (matriks korelasi bukan  matriks identitas) yang signifikan antara variabel sehingga dapat dianalisis lebih lanjut dengan analisis faktor. 
+kapan di gunakan selain analisis faktor dipakai juga seharusnya pada PCA apakah matriks korelasinya berupa matriks indentitas atau bukan karena di PCA juga mensyaratkan antar variabelnya ada hubungan
+
+harapannya : tolak Ho
+Dengan menyiratkan nantinya itu bisa juga terjadi dalam dalam data populasinya
+
+Hipotesis:
+$$
+Ho: Matriks \ Korelasi \ merupakan \ matriks\ identitas \\
+H1: Matriks\ Korelasi \ Bukan \ merupakan \ matriks\ identitas \\
+$$
+
+```{r}
+library(REdaS)
+bart_spher(datastan)
+```
+
+## Uji kecukupan sampel KMO dan MSA
+Tujuan: Mengukur kecukuoan sampel untuk melakukan analisis  dengan membandingkan besarnya koefisien korelasi terobservasi dengan koefisien korelasi parsial 
+
+```{r}
+library(EFAtools)
+KMO(datastan)
+KMOS(datastan)
+```
+Interpretasi KMO Semua variabel memiliki nilai MSA>0.5 sehingga dianggap reliabel dan tidak di hapus.
+
+Interpretasi bartlet test Nilai Pvalue <0.05 berarti pada tingkat signifikansi 5% terdapat cukup bukti bahwa matriks korelasi tidak sama dengan matriks identitas. Sehingga variabel tidak saling independent dan dapat digunakan analisis multivariat.
+
+
+## Scree Plot
+
+```{r}
+library(psych)
+scree(cov(data))
+```
+Menentukan Faktor
+•	Menentukan banyak faktor dengan melihat nilai eigen dari covarians matriks data yang sudah di standarisasi
+```{r}
+R<-cor(datastan) 
+eigen<-eigen(R) 
+eigen
+
+```
+
+## Metode MLE
+
+```{r}
+(fac <- factanal(datastan, factors = 2, method = "mle", scores = "regression"))
+(fac1 <- factanal(datastan, factors = 2, method = "fa", scores = "regression"))
+# method selalu MLE (default)
+# Pilihan scores: regression, Bartlett
+# Rotation: varimax (default), none, atau dengan nama function
+
+# Jika yang diketahui matriks varians-kovarians
+# (fac <- factanal(covmat = S, factors = 2, method = "mle", scores = "regression"))
+```
+
+kalau di pca, satu variabel bisa masuk ke lebih dari satu component. Sedangkan dalam fa, satu variabel hanya dapat masuk ke satu factor saja. 
+
+## Communality (h)
+harapannya memperoleh nilai communality yang besar supaya comman faktor yang terbentuk sebanyak m mampu menjelaskan keragaman disetiap x nya, tapi mungkin ada nilainya  sangat mencolok kecil maka cammon faktor yang terbentuk tidak dapat menjelaskan variasi yang nialinya kecil tersebut dan lebih banyak di error atau spesifik error,sehingga kita dapat katakan variabel yang nilai communalitynya kecil bermasalah untuk di ikut sertaakan dalam metode faktor.
+
+
+```{r}
+loadings <- fac$loadings
+(communality <- rowSums(loadings^2))
+colSums(loadings^2)
+```
+
+## Specific variance (psy)
+
+```{r}
+# e = 1 - hi^2 dimana hi^2 merupakan communality
+(spec_var <- diag(cor(data))-communality)
+ ##diag(spec_var)
+```
+
+## Residual
+Jika banyaknya faktor persekutuan tidak ditentukan oleh
+  pertimbangan prioritas,
+seperti dengan teori atau karya peneliti lain, pilihan m dapat didasarkan pada
+estimasi nilai eigen dengan cara yang hampir sama dengan komponen utama.
+Pertimbangkan matriks residual
+Rumus:
+$$
+R-(LL'+ \Psi)
+$$
+
+```{r}
+cov(data) - (as.matrix(loadings) %*% t(as.matrix(loadings)) + diag(spec_var))
+```
+
+## Matriks Rotasi
+
+```{r}
+fac$rotmat
+```
+
+## Factor Scores
+
+```{r}
+head(fac$scores)
+```
+
+# Contoh 2
+
+## Import data
+
+```{r}
+library(readxl)
+data <- as.data.frame(read_excel("Data Modul 9.xlsx"))
+data
+```
+
+## Histogram
+
+```{r}
+for(i in 1:ncol(data)) {
+  hist(data[,i], probability = TRUE, main = colnames(data)[i], xlab = colnames(data)[i])
+  lines(density(data[,i]))
+}
+```
+
+## Uji MVN
+
+```{r}
+library(MVN)
+mvn(data, mvnTest = "mardia")
+# mvn(data)
+```
+
+## Uji Sphericity Bartlett 
+
+```{r}
+library(REdaS)
+bart_spher(data)
+```
+
+## Uji kecukupan sampel KMO dan MSA
+
+```{r}
+KMOS(data)
+```
+
+## Scree Plot
+
+```{r}
+library(psych)
+scree(cov(data))
+```
+
+## Metode MLE
+
+```{r}
+(fac <- factanal(data, factors = 3, method = "mle", scores = "regression"))
+
+# method selalu MLE (default)
+# Pilihan scores: regression, Bartlett
+# Rotation: varimax (default), none, atau dengan nama function
+
+# Jika yang diketahui matriks varians-kovarians
+# (fac <- factanal(covmat = S, factors = 3, method = "mle", scores = "regression"))
+```
+
+## Communality (h)
+
+```{r}
+loadings <- fac$loadings
+(communality <- rowSums(loadings^2))
+colSums(loadings^2)
+```
+
+## Specific variance (psy)
+
+```{r}
+(spec_var <- diag(cov(data))-communality)
+# diag(spec_var)
+```
+
+## Residual
+
+```{r}
+cov(data) - (as.matrix(loadings) %*% t(as.matrix(loadings)) + diag(spec_var))
+```
+
+## Matriks Rotasi
+
+```{r}
+fac$rotmat
+```
+
+## Factor Scores
+
+```{r}
+head(fac$scores)
+```
+
+`
