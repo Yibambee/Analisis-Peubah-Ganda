@@ -8,4 +8,4 @@ Materi:
 - [Principle Component Analysis (PCA)](/PCA) 
 - [Latent Dirichlet Analysis (LDA)](/LDA)
 - [Clustering](/Cluster)
-- [Factor Analysis](/FA)
+- [Factor Analysis (FA)](/FA)
