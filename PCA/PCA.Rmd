@@ -1,0 +1,129 @@
+---
+title: "Tugas Kelompok APG"
+author: "Niko Romano"
+output: word_document
+---
+
+# Package 
+
+```{r}
+# package yang diperlukan 
+library(readxl)
+library(factoextra)
+```
+
+
+# Baca Data
+
+```{r}
+# baca data
+data <- read_excel("D:/Users/ASUS/Documents/Materi Semester 5/Analisis Peubah Ganda (APG)/Data/default of credit card clients.xls")
+
+# data yang digunakan hanya terdiri dari 500 observasi dan 23 variabel  
+data <- data[2:501, -c(1,25)] # potong data
+data <- as.numeric(unlist(data)) # jadikan data menjadi numerik 
+data <- matrix(data, nrow = 500, ncol = 23) # jadikan matriks 
+data <- as.data.frame(data) # jadikan data frame
+str(data) # melihat struktur data
+```
+
+# Tahapan PCA 
+
+## Cek Missing Value
+
+```{r}
+# cek missing value sebelum melakukan analisis
+which(is.na(data))
+``` 
+
+
+
+## Standardisasi
+
+```{r}
+# standardisasi data
+zdata <- data.frame(scale(data))
+
+```
+
+## Korelasi Antar Variable
+
+```{r}
+# mencari korelasi antar variable 
+round(cor(data),2)
+```
+
+
+##Cari Eigen 
+
+```{r}
+# eigen value dan eigen vector 
+eigen(cor(data))
+```
+
+```{r}
+# Principle Component Analysis
+PCA <- princomp(zdata, cor = TRUE)
+summary(PCA)
+```
+
+```{r}
+loadings(PCA)
+```
+
+```{r}
+# PCA cara lain 
+res.pca <- prcomp(data, scale = TRUE)
+summary(res.pca)
+```
+
+## Visualisasi 
+
+```{r}
+# scree plot
+fviz_eig(res.pca, addlabels = TRUE)
+```
+
+Diperoleh dari grafik scree plot bahwa kumulatif 5 dimensi/komponen berjumlah 66% (sudah melewati 65%). Hal ini berarti terdapat 5 (lima) faktor yang terbentuk dari 23 variable yang dianalisis dimana 66% keragaman/variasi dapat dijelaskan oleh Kelima faktor tersebut. 
+
+
+```{r}
+
+fviz_pca_ind(res.pca,
+             col.ind = "cos2", # Color by the quality of representation
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+```
+
+```{r}
+fviz_pca_var(res.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+```
+
+```{r} 
+fviz_pca_biplot(res.pca, repel = TRUE,
+                col.var = "#2E9FDF", # Variables color
+                col.ind = "#696969"  # Individuals color
+                )
+```
+
+
+```{r}
+# Eigenvalues cara lain 
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+  
+# Results for Variables
+# res.var <- get_pca_var(res.pca)
+# res.var$coord          # Coordinates
+# res.var$contrib        # Contributions to the PCs
+# res.var$cos2           # Quality of representation
+```
+Syarat dapat menjadi suatu faktor adalah suatu dimensi tersebut harus memiliki nilai eigen value lebih dari satu (>1). Diperoleh bahwa dimensi 1-5 memiliki nilai eigen value lebih dari 1 sehingga terdapat 5 komponen / faktor yang dapat yang terbentuk dari 23 variable yang dianalisis. 
+
+
+
